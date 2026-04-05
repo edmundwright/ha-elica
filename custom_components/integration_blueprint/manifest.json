@@ -1,12 +1,12 @@
 {
-  "domain": "integration_blueprint",
-  "name": "Integration blueprint",
+  "domain": "elica_integration",
+  "name": "Elica integration",
   "codeowners": [
-    "@ludeeus"
+    "@edmundwright"
   ],
   "config_flow": true,
-  "documentation": "https://github.com/ludeeus/integration_blueprint",
+  "documentation": "https://github.com/edmundwright/ha-elica",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/ludeeus/integration_blueprint/issues",
+  "issue_tracker": "https://github.com/edmundwright/ha-elica/issues",
   "version": "0.1.0"
 }
