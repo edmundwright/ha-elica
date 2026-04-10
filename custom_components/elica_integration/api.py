@@ -40,39 +40,80 @@ class ElicaIntegrationApiClient:
 
     def __init__(
         self,
-        username: str,
-        password: str,
         session: aiohttp.ClientSession,
+        access_token: str | None = None,
+        username: str | None = None,
+        password: str | None = None,
     ) -> None:
         """Elica integration API Client."""
+        self._access_token = access_token
         self._username = username
         self._password = password
         self._session = session
 
-    async def async_get_data(self) -> Any:
-        """Get data from the API."""
-        return await self._api_wrapper(
+    async def get_info_on_me(self) -> Any:
+        """Get information about the authenticated user."""
+        return await self._make_request(
             method="get",
-            url="https://jsonplaceholder.typicode.com/posts/1",
+            url="https://cloudprod.elica.com/eiot-api/v1/me",
         )
 
-    async def async_set_title(self, value: str) -> Any:
-        """Get data from the API."""
-        return await self._api_wrapper(
-            method="patch",
-            url="https://jsonplaceholder.typicode.com/posts/1",
-            data={"title": value},
-            headers={"Content-type": "application/json; charset=UTF-8"},
+    async def get_info_on_device(self) -> Any:
+        """Get information about the device."""
+        return await self._make_request(
+            method="get",
+            url="https://cloudprod.elica.com/eiot-api/v1/devices/1YuzGG",
         )
 
-    async def _api_wrapper(
+    async def turn_on_light(self) -> Any:
+        """Turn on the light."""
+        return await self._set_light_level(100)
+
+    async def turn_off_light(self) -> Any:
+        """Turn on the light."""
+        return await self._set_light_level(0)
+
+    async def _set_light_level(self, value: int) -> Any:
+        """Set the light level."""
+        return await self._make_request(
+            method="post",
+            url="https://cloudprod.elica.com/eiot-api/v1/devices/1YuzGG/commands",
+            data={
+                "async": True,
+                "capabilities": {"96": value},
+                "name": "capabilities",
+                "type": "Hood",
+                "timeout": 30000,
+            },
+        )
+
+    async def _make_request(
+        self,
+        method: str,
+        url: str,
+        data: dict | None = None,
+    ) -> Any:
+        """Make an authenticated request to the API."""
+        headers = (
+            {"Authorization": f"Bearer {self._access_token}"}
+            if self._access_token
+            else {}
+        )
+        return await self._make_request_with_headers(
+            method=method,
+            url=url,
+            data=data,
+            headers=headers,
+        )
+
+    async def _make_request_with_headers(
         self,
         method: str,
         url: str,
         data: dict | None = None,
         headers: dict | None = None,
     ) -> Any:
-        """Get information from the API."""
+        """Make a request to the API."""
         try:
             async with async_timeout.timeout(10):
                 response = await self._session.request(
