@@ -9,17 +9,17 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.loader import Integration
 
-    from .api import IntegrationBlueprintApiClient
-    from .coordinator import BlueprintDataUpdateCoordinator
+    from .api import ElicaIntegrationApiClient
+    from .coordinator import ElicaIntegrationDataUpdateCoordinator
 
 
-type IntegrationBlueprintConfigEntry = ConfigEntry[IntegrationBlueprintData]
+type ElicaIntegrationConfigEntry = ConfigEntry[ElicaIntegrationData]
 
 
 @dataclass
-class IntegrationBlueprintData:
-    """Data for the Blueprint integration."""
+class ElicaIntegrationData:
+    """Data for the Elica integration."""
 
-    client: IntegrationBlueprintApiClient
-    coordinator: BlueprintDataUpdateCoordinator
+    client: ElicaIntegrationApiClient
+    coordinator: ElicaIntegrationDataUpdateCoordinator
     integration: Integration
