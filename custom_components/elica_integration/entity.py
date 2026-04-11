@@ -1,4 +1,4 @@
-"""BlueprintEntity class."""
+"""ElicaIntegrationEntity class."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from .coordinator import ElicaIntegrationDataUpdateCoordinator
 
 
 class ElicaIntegrationEntity(CoordinatorEntity[ElicaIntegrationDataUpdateCoordinator]):
-    """BlueprintEntity class."""
+    """ElicaIntegrationEntity class."""
 
     _attr_attribution = ATTRIBUTION
 
