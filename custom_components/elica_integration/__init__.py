@@ -12,15 +12,13 @@ from typing import TYPE_CHECKING
 
 from homeassistant.const import (
     CONF_ACCESS_TOKEN,
-    CONF_PASSWORD,
-    CONF_USERNAME,
     Platform,
 )
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.loader import async_get_loaded_integration
 
-from .api import ElicaIntegrationApiClient
-from .const import DOMAIN, LOGGER
+from .api import AuthTokens, ElicaIntegrationApiClient
+from .const import CONF_REFRESH_TOKEN, DOMAIN, LOGGER
 from .coordinator import ElicaIntegrationDataUpdateCoordinator
 from .data import ElicaIntegrationData
 
@@ -48,10 +46,11 @@ async def async_setup_entry(
     )
     entry.runtime_data = ElicaIntegrationData(
         client=ElicaIntegrationApiClient(
-            # username=entry.data[CONF_USERNAME],
-            # password=entry.data[CONF_PASSWORD],
-            access_token=entry.data[CONF_ACCESS_TOKEN],
-            session=async_get_clientsession(hass),
+            async_get_clientsession(hass),
+            AuthTokens(
+                access_token=entry.data[CONF_ACCESS_TOKEN],
+                refresh_token=entry.data[CONF_REFRESH_TOKEN],
+            ),
         ),
         integration=async_get_loaded_integration(hass, entry.domain),
         coordinator=coordinator,

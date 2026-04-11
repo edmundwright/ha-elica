@@ -6,3 +6,7 @@ LOGGER: Logger = getLogger(__package__)
 
 DOMAIN = "elica_integration"
 ATTRIBUTION = "Data provided by http://jsonplaceholder.typicode.com/"
+CONF_REFRESH_TOKEN = "refresh_token"
+# Initial basic auth token (shared by all instances of Android app - not a secret
+# credential). Base64 encoding of "eiot-app:VqwG1KTB77UeROu".
+INITIAL_AUTH_TOKEN = "ZWlvdC1hcHA6VnF3RzFLVEI3N1VlUk91"

@@ -5,10 +5,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.light import (
-    ColorMode,
     LightEntity,
     LightEntityDescription,
 )
+from homeassistant.components.light.const import ColorMode
 
 from .entity import ElicaIntegrationEntity
 

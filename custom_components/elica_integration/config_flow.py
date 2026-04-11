@@ -2,24 +2,32 @@
 
 from __future__ import annotations
 
+from os import access
+
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_ACCESS_TOKEN, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.loader import async_get_loaded_integration
-from slugify import slugify
+from httpx import get
 
 from .api import (
+    AuthTokens,
+    BasicElicaIntegrationApiClient,
     ElicaIntegrationApiClient,
     ElicaIntegrationApiClientAuthenticationError,
     ElicaIntegrationApiClientCommunicationError,
     ElicaIntegrationApiClientError,
 )
-from .const import DOMAIN, LOGGER
+from .const import CONF_REFRESH_TOKEN, DOMAIN, LOGGER
 
 
-class ElicaIntegrationFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
+class ElicaIntegrationConfigFlowError(Exception):
+    """Exception to indicate an error in Elica config flow."""
+
+
+class ElicaIntegrationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Elica integration."""
 
     VERSION = 1
@@ -31,12 +39,14 @@ class ElicaIntegrationFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle a flow initialized by the user."""
         _errors = {}
         if user_input is not None:
+            user_id: str
+            auth_tokens: AuthTokens
             try:
-                await self._test_credentials(
-                    # username=user_input[CONF_USERNAME],
-                    # password=user_input[CONF_PASSWORD],
-                    access_token=user_input[CONF_ACCESS_TOKEN],
+                auth_tokens = await self._get_auth_tokens(
+                    username=user_input[CONF_USERNAME],
+                    password=user_input[CONF_PASSWORD],
                 )
+                user_id = await self._get_user_id(auth_tokens)
             except ElicaIntegrationApiClientAuthenticationError as exception:
                 LOGGER.warning(exception)
                 _errors["base"] = "auth"
@@ -48,16 +58,17 @@ class ElicaIntegrationFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 _errors["base"] = "unknown"
             else:
                 await self.async_set_unique_id(
-                    ## Do NOT use this in production code
-                    ## The unique_id should never be something that can change
-                    ## https://developers.home-assistant.io/docs/config_entries_config_flow_handler#unique-ids
-                    unique_id="unique_id_for_this_integration",
+                    unique_id=user_id,
                 )
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
-                    title="title - what is this for? here's the access token: "
-                    + user_input[CONF_ACCESS_TOKEN],
-                    data=user_input,
+                    title=user_input[CONF_USERNAME],
+                    data={
+                        CONF_USERNAME: user_input[CONF_USERNAME],
+                        CONF_PASSWORD: user_input[CONF_PASSWORD],
+                        CONF_ACCESS_TOKEN: auth_tokens.access_token,
+                        CONF_REFRESH_TOKEN: auth_tokens.refresh_token,
+                    },
                 )
 
         integration = async_get_loaded_integration(self.hass, DOMAIN)
@@ -73,39 +84,34 @@ class ElicaIntegrationFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Required(
-                        CONF_ACCESS_TOKEN,
-                        default=(user_input or {}).get(
-                            CONF_ACCESS_TOKEN, vol.UNDEFINED
-                        ),
+                        CONF_USERNAME,
+                        default=(user_input or {}).get(CONF_USERNAME, vol.UNDEFINED),
                     ): selector.TextSelector(
                         selector.TextSelectorConfig(
                             type=selector.TextSelectorType.TEXT,
                         ),
                     ),
-                    # vol.Required(
-                    #     CONF_USERNAME,
-                    #     default=(user_input or {}).get(CONF_USERNAME, vol.UNDEFINED),
-                    # ): selector.TextSelector(
-                    #     selector.TextSelectorConfig(
-                    #         type=selector.TextSelectorType.TEXT,
-                    #     ),
-                    # ),
-                    # vol.Required(CONF_PASSWORD): selector.TextSelector(
-                    #     selector.TextSelectorConfig(
-                    #         type=selector.TextSelectorType.PASSWORD,
-                    #     ),
-                    # ),
+                    vol.Required(CONF_PASSWORD): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.PASSWORD,
+                        ),
+                    ),
                 },
             ),
             errors=_errors,
         )
 
-    async def _test_credentials(self, access_token: str) -> None:
-        """Validate credentials."""
-        client = ElicaIntegrationApiClient(
-            # username=username,
-            # password=password,
-            access_token=access_token,
-            session=async_create_clientsession(self.hass),
+    async def _get_auth_tokens(self, username: str, password: str) -> AuthTokens:
+        """Get access token and refresh token."""
+        client = BasicElicaIntegrationApiClient(
+            session=async_create_clientsession(self.hass)
         )
-        await client.get_info_on_me()
+        return await client.get_auth_tokens(username, password)
+
+    async def _get_user_id(self, auth_tokens: AuthTokens) -> str:
+        """Get user ID for the authenticated user."""
+        client = ElicaIntegrationApiClient(
+            async_create_clientsession(self.hass),
+            auth_tokens,
+        )
+        return await client.get_user_id()
