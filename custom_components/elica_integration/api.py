@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 import socket
 from typing import Any, NamedTuple
 
@@ -107,6 +106,8 @@ class BasicElicaIntegrationApiClient:
                     data=data,
                     json=json,
                 )
+                print("Response status:", response.status)
+                print("Response JSON:", await response.json())
                 _verify_response_or_raise(response)
                 return await response.json()
 
@@ -160,15 +161,17 @@ class ElicaIntegrationApiClient(BasicElicaIntegrationApiClient):
             url="https://cloudprod.elica.com/eiot-api/v1/devices",
         )
 
-    async def turn_on_light(self, device_id: str) -> Any:
+    async def turn_on_light(self, device_id: str, device_type: str) -> Any:
         """Turn on the light."""
-        return await self._set_light_level(device_id, 100)
+        return await self._set_light_level(device_id, device_type, 100)
 
-    async def turn_off_light(self, device_id: str) -> Any:
+    async def turn_off_light(self, device_id: str, device_type: str) -> Any:
         """Turn off the light."""
-        return await self._set_light_level(device_id, 0)
+        return await self._set_light_level(device_id, device_type, 0)
 
-    async def _set_light_level(self, device_id: str, value: int) -> Any:
+    async def _set_light_level(
+        self, device_id: str, device_type: str, value: int
+    ) -> Any:
         """Set the light level."""
         return await self._make_request(
             method="post",
@@ -177,7 +180,7 @@ class ElicaIntegrationApiClient(BasicElicaIntegrationApiClient):
                 "async": True,
                 "capabilities": {"96": value},
                 "name": "capabilities",
-                # "type": "Hood",
+                "type": device_type,
                 "timeout": 30000,
             },
         )
@@ -195,14 +198,12 @@ class ElicaIntegrationApiClient(BasicElicaIntegrationApiClient):
         print("JSON:", json)
         print("Headers:", headers)
         """Make an authenticated request to the API."""
-        response = await self._make_basic_request(
+        return await self._make_basic_request(
             method=method,
             url=url,
             json=json,
             headers=headers,
         )
-        print("Response:", response)
-        return response
 
 
 def _verify_response_or_raise(response: aiohttp.ClientResponse) -> None:

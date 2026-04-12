@@ -4,7 +4,7 @@ from logging import Logger, getLogger
 
 LOGGER: Logger = getLogger(__package__)
 
-DOMAIN = "elica_integration"
+DOMAIN = "elica"
 ATTRIBUTION = "Data provided by https://www.elica.com"
 CONF_REFRESH_TOKEN = "refresh_token"  # noqa: S105
 # Initial basic auth token (shared by all instances of Android app - not a secret

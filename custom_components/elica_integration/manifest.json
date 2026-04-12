@@ -1,6 +1,6 @@
 {
-  "domain": "elica_integration",
-  "name": "Elica integration",
+  "domain": "elica",
+  "name": "Elica",
   "codeowners": [
     "@edmundwright"
   ],
