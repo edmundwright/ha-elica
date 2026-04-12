@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.light import (
     LightEntity,
@@ -10,13 +10,13 @@ from homeassistant.components.light import (
 )
 from homeassistant.components.light.const import ColorMode
 
-from custom_components.elica_integration.coordinator import DeviceInfo
-
 from .entity import ElicaIntegrationEntity
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+    from custom_components.elica_integration.coordinator import DeviceInfo
 
     from .coordinator import ElicaIntegrationDataUpdateCoordinator
     from .data import ElicaIntegrationConfigEntry
@@ -32,7 +32,10 @@ async def async_setup_entry(
     async_add_entities(
         ElicaIntegrationLight(
             coordinator=coordinator,
-            device_info=device_info,
+            device_id=device_info.id,
+            device_type=device_info.type,
+            device_name=device_info.name,
+            light_name=f"{device_info.name} light",
         )
         for device_info in coordinator.data.values()
         if device_info.type == "Hood"
@@ -45,25 +48,28 @@ class ElicaIntegrationLight(ElicaIntegrationEntity, LightEntity):
     def __init__(
         self,
         coordinator: ElicaIntegrationDataUpdateCoordinator,
-        device_info: DeviceInfo,
+        device_id: str,
+        device_type: str,
+        device_name: str,
+        light_name: str,
     ) -> None:
         """Initialize the light class."""
         super().__init__(
             coordinator,
-            device_id=device_info.id,
-            device_name=device_info.name,
-            device_model=device_info.type,
+            device_id=device_id,
+            device_name=device_name,
+            device_model=device_type,
         )
-        self._attr_name = f"{device_info.name} light"
+        self._attr_name = light_name
         self.entity_description = LightEntityDescription(
-            key=f"elica_{device_info.id}_light",
-            name=self._attr_name,
+            key=f"elica_{device_id}_light",
+            name=light_name,
             icon="mdi:led-strip",
         )
         self._attr_supported_color_modes = {ColorMode.ONOFF}
         self._attr_color_mode = ColorMode.ONOFF
-        self._device_id = device_info.id
-        self._device_type = device_info.type
+        self._device_id = device_id
+        self._device_type = device_type
 
     @property
     def is_on(self) -> bool:
