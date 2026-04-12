@@ -1,4 +1,4 @@
-"""DataUpdateCoordinator for elica_integration."""
+"""DataUpdateCoordinator for elica."""
 
 from __future__ import annotations
 

@@ -9,7 +9,7 @@ from typing import Any, Callable, NamedTuple
 import aiohttp
 import async_timeout
 
-from custom_components.elica_integration.const import INITIAL_AUTH_TOKEN
+from custom_components.elica.const import INITIAL_AUTH_TOKEN
 
 
 class ElicaIntegrationApiClientError(Exception):

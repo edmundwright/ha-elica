@@ -1,5 +1,5 @@
 """
-Custom integration to integrate elica_integration with Home Assistant.
+Custom integration to integrate elica with Home Assistant.
 
 For more details about this integration, please refer to
 https://github.com/edmundwright/ha-elica

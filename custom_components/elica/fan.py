@@ -1,4 +1,4 @@
-"""Fan platform for elica_integration."""
+"""Fan platform for elica."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-    from custom_components.elica_integration.coordinator import DeviceInfo
+    from custom_components.elica.coordinator import DeviceInfo
 
     from .coordinator import ElicaIntegrationDataUpdateCoordinator
     from .data import ElicaIntegrationConfigEntry
@@ -54,7 +54,7 @@ async def async_setup_entry(
 
 
 class ElicaIntegrationFan(ElicaIntegrationEntity, FanEntity):
-    """elica_integration fan class."""
+    """elica fan class."""
 
     def __init__(
         self,

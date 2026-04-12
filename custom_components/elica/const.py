@@ -1,4 +1,4 @@
-"""Constants for elica_integration."""
+"""Constants for elica."""
 
 from logging import Logger, getLogger
 

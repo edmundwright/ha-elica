@@ -1,4 +1,4 @@
-"""Light platform for elica_integration."""
+"""Light platform for elica."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-    from custom_components.elica_integration.coordinator import DeviceInfo
+    from custom_components.elica.coordinator import DeviceInfo
 
     from .coordinator import ElicaIntegrationDataUpdateCoordinator
     from .data import ElicaIntegrationConfigEntry
@@ -43,7 +43,7 @@ async def async_setup_entry(
 
 
 class ElicaIntegrationLight(ElicaIntegrationEntity, LightEntity):
-    """elica_integration light class."""
+    """elica light class."""
 
     def __init__(
         self,

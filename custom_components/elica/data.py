@@ -1,4 +1,4 @@
-"""Custom types for elica_integration."""
+"""Custom types for elica."""
 
 from __future__ import annotations
 
