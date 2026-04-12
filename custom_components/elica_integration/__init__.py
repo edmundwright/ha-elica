@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from .data import ElicaIntegrationConfigEntry
 
 PLATFORMS: list[Platform] = [
+    Platform.FAN,
     Platform.LIGHT,
 ]
 
@@ -44,7 +45,8 @@ async def async_setup_entry(
         hass=hass,
         logger=LOGGER,
         name=DOMAIN,
-        update_interval=timedelta(seconds=10),
+        # RESTORE TO 10!
+        update_interval=timedelta(seconds=2),
     )
     entry.runtime_data = ElicaIntegrationData(
         client=ElicaIntegrationApiClient(

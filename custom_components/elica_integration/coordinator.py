@@ -23,6 +23,7 @@ class DeviceInfo(NamedTuple):
     name: str
     type: str
     light_level: int
+    unboosted_fan_level: int
 
 
 # https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-single-api-poll-for-data-for-all-entities
@@ -41,6 +42,7 @@ class ElicaIntegrationDataUpdateCoordinator(DataUpdateCoordinator):
                     name=d["name"],
                     type=d["type"],
                     light_level=d.get("dataModel", {}).get("96", 0),
+                    unboosted_fan_level=d.get("dataModel", {}).get("110", 0),
                 )
                 for d in response
             }

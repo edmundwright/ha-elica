@@ -80,6 +80,20 @@ class ElicaIntegrationApiClient:
             url="https://cloudprod.elica.com/eiot-api/v1/devices",
         )
 
+    async def set_fan_level(self, device_id: str, device_type: str, level: int) -> Any:
+        """Set the fan level."""
+        return await self._make_request(
+            method="post",
+            url=f"https://cloudprod.elica.com/eiot-api/v1/devices/{device_id}/commands",
+            json={
+                "async": True,
+                "capabilities": {"110": level},
+                "name": "capabilities",
+                "type": device_type,
+                "timeout": 30000,
+            },
+        )
+
     async def turn_on_light(self, device_id: str, device_type: str) -> Any:
         """Turn on the light."""
         return await self._set_light_level(device_id, device_type, 100)
