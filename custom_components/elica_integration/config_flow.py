@@ -2,25 +2,20 @@
 
 from __future__ import annotations
 
-from os import access
-
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_ACCESS_TOKEN, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.loader import async_get_loaded_integration
-from httpx import get
 
 from .api import (
-    AuthTokens,
-    BasicElicaIntegrationApiClient,
     ElicaIntegrationApiClient,
     ElicaIntegrationApiClientAuthenticationError,
     ElicaIntegrationApiClientCommunicationError,
     ElicaIntegrationApiClientError,
 )
-from .const import CONF_REFRESH_TOKEN, DOMAIN, LOGGER
+from .const import DOMAIN, LOGGER
 
 
 class ElicaIntegrationConfigFlowError(Exception):
@@ -40,13 +35,10 @@ class ElicaIntegrationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         _errors = {}
         if user_input is not None:
             user_id: str
-            auth_tokens: AuthTokens
             try:
-                auth_tokens = await self._get_auth_tokens(
-                    username=user_input[CONF_USERNAME],
-                    password=user_input[CONF_PASSWORD],
-                )
-                user_id = await self._get_user_id(auth_tokens)
+                username = user_input[CONF_USERNAME]
+                password = user_input[CONF_PASSWORD]
+                user_id = await self._get_user_id(username, password)
             except ElicaIntegrationApiClientAuthenticationError as exception:
                 LOGGER.warning(exception)
                 _errors["base"] = "auth"
@@ -66,8 +58,6 @@ class ElicaIntegrationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     data={
                         CONF_USERNAME: user_input[CONF_USERNAME],
                         CONF_PASSWORD: user_input[CONF_PASSWORD],
-                        CONF_ACCESS_TOKEN: auth_tokens.access_token,
-                        CONF_REFRESH_TOKEN: auth_tokens.refresh_token,
                     },
                 )
 
@@ -101,17 +91,11 @@ class ElicaIntegrationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=_errors,
         )
 
-    async def _get_auth_tokens(self, username: str, password: str) -> AuthTokens:
-        """Get access token and refresh token."""
-        client = BasicElicaIntegrationApiClient(
-            session=async_create_clientsession(self.hass)
-        )
-        return await client.get_auth_tokens(username, password)
-
-    async def _get_user_id(self, auth_tokens: AuthTokens) -> str:
+    async def _get_user_id(self, username: str, password: str) -> str:
         """Get user ID for the authenticated user."""
         client = ElicaIntegrationApiClient(
             async_create_clientsession(self.hass),
-            auth_tokens,
+            username=username,
+            password=password,
         )
         return await client.get_user_id()
