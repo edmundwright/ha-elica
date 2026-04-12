@@ -153,31 +153,31 @@ class ElicaIntegrationApiClient(BasicElicaIntegrationApiClient):
             raise ElicaIntegrationApiClientUnexpectedResponseError(msg)
         return user_id
 
-    async def get_info_on_device(self) -> Any:
-        """Get information about the device."""
+    async def get_info_on_devices(self) -> Any:
+        """Get information about the devices."""
         return await self._make_request(
             method="get",
-            url="https://cloudprod.elica.com/eiot-api/v1/devices/1YuzGG",
+            url="https://cloudprod.elica.com/eiot-api/v1/devices",
         )
 
-    async def turn_on_light(self) -> Any:
+    async def turn_on_light(self, device_id: str) -> Any:
         """Turn on the light."""
-        return await self._set_light_level(100)
+        return await self._set_light_level(device_id, 100)
 
-    async def turn_off_light(self) -> Any:
-        """Turn on the light."""
-        return await self._set_light_level(0)
+    async def turn_off_light(self, device_id: str) -> Any:
+        """Turn off the light."""
+        return await self._set_light_level(device_id, 0)
 
-    async def _set_light_level(self, value: int) -> Any:
+    async def _set_light_level(self, device_id: str, value: int) -> Any:
         """Set the light level."""
         return await self._make_request(
             method="post",
-            url="https://cloudprod.elica.com/eiot-api/v1/devices/1YuzGG/commands",
+            url=f"https://cloudprod.elica.com/eiot-api/v1/devices/{device_id}/commands",
             json={
                 "async": True,
                 "capabilities": {"96": value},
                 "name": "capabilities",
-                "type": "Hood",
+                # "type": "Hood",
                 "timeout": 30000,
             },
         )
@@ -188,13 +188,21 @@ class ElicaIntegrationApiClient(BasicElicaIntegrationApiClient):
         url: str,
         json: dict | None = None,
     ) -> Any:
+        headers = {"Authorization": f"Bearer {self._auth_tokens.access_token}"}
+        print("Makring request.")
+        print("Method:", method)
+        print("URL:", url)
+        print("JSON:", json)
+        print("Headers:", headers)
         """Make an authenticated request to the API."""
-        return await self._make_basic_request(
+        response = await self._make_basic_request(
             method=method,
             url=url,
             json=json,
-            headers={"Authorization": f"Bearer {self._auth_tokens.access_token}"},
+            headers=headers,
         )
+        print("Response:", response)
+        return response
 
 
 def _verify_response_or_raise(response: aiohttp.ClientResponse) -> None:
