@@ -45,8 +45,7 @@ async def async_setup_entry(
         hass=hass,
         logger=LOGGER,
         name=DOMAIN,
-        # RESTORE TO 10!
-        update_interval=timedelta(seconds=2),
+        update_interval=timedelta(seconds=10),
     )
     entry.runtime_data = ElicaIntegrationData(
         client=ElicaIntegrationApiClient(
