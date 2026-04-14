@@ -200,7 +200,6 @@ class ElicaIntegrationApiClient:
                     json=json,
                 )
                 print("Response status:", response.status)
-                print("Response JSON:", await response.json())
                 _verify_response_or_raise(response)
                 return await response.json()
 
