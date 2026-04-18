@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from re import U
 import socket
-from typing import Any, Callable, NamedTuple
+from typing import Any
 
 import aiohttp
 import async_timeout
 
 from custom_components.elica.const import INITIAL_AUTH_TOKEN
+from custom_components.elica.data import MAX_FAN_SPEED, DeviceInfo
 
 
 class ElicaIntegrationApiClientError(Exception):
@@ -46,6 +46,17 @@ class ElicaIntegrationApiClientBadRequestError(
     """Exception to indicate server returned 400."""
 
 
+_ID_KEY = "id"
+_NAME_KEY = "name"
+_TYPE_KEY = "type"
+_DATA_MODEL_KEY = "dataModel"
+_LIGHT_LEVEL_KEY = "96"
+_UNBOOSTED_SPEED_KEY = "110"
+_BOOST_KEY = "64"
+_BOOST_OFF_VALUE = 1
+_BOOST_ON_VALUE = 5
+
+
 class ElicaIntegrationApiClient:
     """Elica integration API Client."""
 
@@ -73,23 +84,41 @@ class ElicaIntegrationApiClient:
             raise ElicaIntegrationApiClientUnexpectedResponseError(msg)
         return user_id
 
-    async def get_info_on_devices(self) -> Any:
+    async def get_info_on_devices(self) -> dict[str, DeviceInfo]:
         """Get information about the devices."""
-        return await self._make_request(
+        response = await self._make_request(
             method="get",
             url="https://cloudprod.elica.com/eiot-api/v1/devices",
         )
+        info = {
+            d[_ID_KEY]: DeviceInfo(
+                id=d[_ID_KEY],
+                name=d[_NAME_KEY],
+                type=d[_TYPE_KEY],
+                is_light_on=_is_light_on(_get_data_model(d)),
+                fan_speed=_get_fan_speed(_get_data_model(d)),
+            )
+            for d in response
+        }
+        print(f"Got info: {info}")
+        return info
 
-    async def set_fan_level(self, device_id: str, device_type: str, level: int) -> Any:
+    async def set_fan_speed(self, device_id: str, device_type: str, speed: int) -> Any:
         """Set the fan level."""
+        is_boosted = _get_is_fan_boosted(speed)
         return await self._make_request(
             method="post",
             url=f"https://cloudprod.elica.com/eiot-api/v1/devices/{device_id}/commands",
             json={
                 "async": True,
-                "capabilities": {"110": level},
+                "capabilities": {_BOOST_KEY: _BOOST_ON_VALUE}
+                if is_boosted
+                else {
+                    _UNBOOSTED_SPEED_KEY: _get_unboosted_fan_speed(speed),
+                    _BOOST_KEY: _BOOST_OFF_VALUE,
+                },
                 "name": "capabilities",
-                "type": device_type,
+                _TYPE_KEY: device_type,
                 "timeout": 30000,
             },
         )
@@ -111,9 +140,9 @@ class ElicaIntegrationApiClient:
             url=f"https://cloudprod.elica.com/eiot-api/v1/devices/{device_id}/commands",
             json={
                 "async": True,
-                "capabilities": {"96": value},
+                "capabilities": {_LIGHT_LEVEL_KEY: value},
                 "name": "capabilities",
-                "type": device_type,
+                _TYPE_KEY: device_type,
                 "timeout": 30000,
             },
         )
@@ -126,11 +155,7 @@ class ElicaIntegrationApiClient:
     ) -> Any:
         if not self._access_token:
             await self._update_access_token()
-        print("Makring request.")
-        print("Method:", method)
-        print("URL:", url)
-        print("JSON:", json)
-        print("Headers:", self._get_auth_headers())
+        print(f"Making request. Method: {method}, URL: {url}, JSON: {json}")
         """Make an authenticated request to the API."""
         try:
             return await self._make_basic_request(
@@ -241,3 +266,31 @@ def _verify_response_or_raise(response: aiohttp.ClientResponse) -> None:
         )
 
     response.raise_for_status()
+
+
+def _get_data_model(device_json: dict) -> dict:
+    """Get the data model from the response."""
+    return device_json.get(_DATA_MODEL_KEY, {})
+
+
+def _is_light_on(data_model: dict) -> bool:
+    """Get whether the light is on from the data model."""
+    return data_model.get(_LIGHT_LEVEL_KEY, 0) > 0
+
+
+def _get_fan_speed(data_model: dict) -> int:
+    """Get the fan speed from the data model."""
+    is_boosted = data_model.get(_BOOST_KEY, 0) > _BOOST_OFF_VALUE
+    if is_boosted:
+        return MAX_FAN_SPEED
+    return data_model.get(_UNBOOSTED_SPEED_KEY, 0)
+
+
+def _get_is_fan_boosted(fan_speed: int) -> bool:
+    """Get whether the fan is boosted from the fan speed."""
+    return fan_speed == MAX_FAN_SPEED
+
+
+def _get_unboosted_fan_speed(fan_speed: int) -> int:
+    """Get the unboosted fan speed from the fan speed."""
+    return min(fan_speed, MAX_FAN_SPEED - 1)

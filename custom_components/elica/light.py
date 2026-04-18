@@ -74,24 +74,31 @@ class ElicaIntegrationLight(ElicaIntegrationEntity, LightEntity):
     @property
     def is_on(self) -> bool:
         """Return true if the light is on."""
+        print("light#is_on()")
         device_info = self.coordinator.data.get(self._device_id, None)
         if not device_info:
             msg = f"Device info for device ID {self._device_id} not found."
             raise ValueError(msg)
-        return device_info.light_level > 0
+        return device_info.is_light_on
 
     async def async_turn_on(self, **_: Any) -> None:
         """Turn on the light."""
+        print("light#async_turn_on()")
         await self.coordinator.config_entry.runtime_data.client.turn_on_light(
             self._device_id,
             self._device_type,
         )
-        await self.coordinator.async_request_refresh()
+        print("light#async_turn_on() got response, updating data")
+        self.coordinator.data[self._device_id].is_light_on = True
+        self.coordinator.async_update_listeners()
 
     async def async_turn_off(self, **_: Any) -> None:
         """Turn off the light."""
+        print("light#async_turn_off()")
         await self.coordinator.config_entry.runtime_data.client.turn_off_light(
             self._device_id,
             self._device_type,
         )
-        await self.coordinator.async_request_refresh()
+        print("light#async_turn_off() got response, updating data")
+        self.coordinator.data[self._device_id].is_light_on = False
+        self.coordinator.async_update_listeners()

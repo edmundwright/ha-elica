@@ -23,3 +23,18 @@ class ElicaIntegrationData:
     client: ElicaIntegrationApiClient
     coordinator: ElicaIntegrationDataUpdateCoordinator
     integration: Integration
+
+
+@dataclass
+class DeviceInfo:
+    """Device info."""
+
+    id: str
+    name: str
+    type: str
+    is_light_on: bool
+    fan_speed: int
+
+
+MAX_FAN_SPEED = 4
+MIN_FAN_SPEED = 1

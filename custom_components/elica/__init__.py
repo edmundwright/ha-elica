@@ -11,7 +11,6 @@ from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from homeassistant.const import (
-    CONF_ACCESS_TOKEN,
     CONF_PASSWORD,
     CONF_USERNAME,
     Platform,

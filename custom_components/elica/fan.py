@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from hmac import new
 import math
 from typing import TYPE_CHECKING, Any
 
@@ -17,6 +18,8 @@ from homeassistant.util.percentage import (
 )
 from homeassistant.util.scaling import int_states_in_range
 
+from custom_components.elica.data import MAX_FAN_SPEED, MIN_FAN_SPEED
+
 
 from .entity import ElicaIntegrationEntity
 
@@ -29,8 +32,7 @@ if TYPE_CHECKING:
     from .coordinator import ElicaIntegrationDataUpdateCoordinator
     from .data import ElicaIntegrationConfigEntry
 
-# TODO: Support boost speed too.
-_SPEED_RANGE = (1, 3)
+_SPEED_RANGE = (MIN_FAN_SPEED, MAX_FAN_SPEED)
 
 
 async def async_setup_entry(
@@ -92,7 +94,7 @@ class ElicaIntegrationFan(ElicaIntegrationEntity, FanEntity):
         if not device_info:
             msg = f"Device info for device ID {self._device_id} not found."
             raise ValueError(msg)
-        return device_info.unboosted_fan_level > 0
+        return device_info.fan_speed > 0
 
     @property
     def percentage(self) -> int | None:
@@ -101,7 +103,7 @@ class ElicaIntegrationFan(ElicaIntegrationEntity, FanEntity):
         if not device_info:
             msg = f"Device info for device ID {self._device_id} not found."
             raise ValueError(msg)
-        return ranged_value_to_percentage(_SPEED_RANGE, device_info.unboosted_fan_level)
+        return _get_percentage(device_info.fan_speed)
 
     @property
     def speed_count(self) -> int:
@@ -115,29 +117,47 @@ class ElicaIntegrationFan(ElicaIntegrationEntity, FanEntity):
         **kwargs: Any,
     ) -> None:
         """Turn on the fan."""
-        await self.coordinator.config_entry.runtime_data.client.set_fan_level(
+        new_speed = self._get_new_speed(percentage)
+        await self.coordinator.config_entry.runtime_data.client.set_fan_speed(
             device_id=self._device_id,
             device_type=self._device_type,
-            level=math.ceil(percentage_to_ranged_value(_SPEED_RANGE, percentage))
-            if percentage is not None
-            else _SPEED_RANGE[0],
+            speed=new_speed,
         )
-        await self.coordinator.async_request_refresh()
+        self.coordinator.data[self._device_id].fan_speed = new_speed
+        self.coordinator.async_update_listeners()
+
+    def _get_new_speed(self, requested_percentage: int | None) -> int:
+        if requested_percentage is not None:
+            return _get_speed(requested_percentage)
+        if self.percentage is not None and self.percentage > 0:
+            return _get_speed(self.percentage)
+        return MIN_FAN_SPEED
 
     async def async_turn_off(self, **_: Any) -> None:
         """Turn off the fan."""
-        await self.coordinator.config_entry.runtime_data.client.set_fan_level(
+        await self.coordinator.config_entry.runtime_data.client.set_fan_speed(
             device_id=self._device_id,
             device_type=self._device_type,
-            level=0,
+            speed=0,
         )
-        await self.coordinator.async_request_refresh()
+        self.coordinator.data[self._device_id].fan_speed = 0
+        self.coordinator.async_update_listeners()
 
     async def async_set_percentage(self, percentage: int) -> None:
         """Set the speed percentage of the fan."""
-        await self.coordinator.config_entry.runtime_data.client.set_fan_level(
+        new_speed = _get_speed(percentage)
+        await self.coordinator.config_entry.runtime_data.client.set_fan_speed(
             device_id=self._device_id,
             device_type=self._device_type,
-            level=math.ceil(percentage_to_ranged_value(_SPEED_RANGE, percentage)),
+            speed=new_speed,
         )
-        await self.coordinator.async_request_refresh()
+        self.coordinator.data[self._device_id].fan_speed = new_speed
+        self.coordinator.async_update_listeners()
+
+
+def _get_speed(percentage: int) -> int:
+    return math.ceil(percentage_to_ranged_value(_SPEED_RANGE, percentage))
+
+
+def _get_percentage(speed: int) -> int:
+    return ranged_value_to_percentage(_SPEED_RANGE, speed)
